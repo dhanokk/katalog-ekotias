@@ -21,7 +21,12 @@ export default async function HalamanKatalog() {
       daftarProduk = data || [];
     }
   } catch (err) {
-    pesanError = `Gagal memuat produk: ${err.message}`;
+    if (err?.message?.includes("fetch failed")) {
+      pesanError =
+        "Gagal memuat produk: Tidak dapat terhubung ke server Supabase. Pastikan koneksi internet aktif, lalu muat ulang halaman.";
+    } else {
+      pesanError = `Gagal memuat produk: ${err.message}`;
+    }
   }
 
   return (
