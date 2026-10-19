@@ -3,6 +3,24 @@
 import { redirect } from "next/navigation";
 import { createSessionClient } from "@/lib/supabase/server";
 
+// Helper untuk memastikan admin sudah login sebelum menjalankan aksi
+export async function pastikanAdminLogin() {
+  const supabase = await createSessionClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    redirect(
+      "/admin/login?error=" +
+        encodeURIComponent("Sesi kamu telah berakhir. Silakan masuk kembali.")
+    );
+  }
+
+  return { supabase, user };
+}
+
 export async function login(formData) {
   const email = formData.get("email")?.toString().trim();
   const password = formData.get("password")?.toString();
@@ -57,5 +75,52 @@ export async function keluar() {
   redirect("/admin/login");
 }
 
-export { login as masuk, keluar as logout };
+export async function gantiPassword(prevStateOrFormData, maybeFormData) {
+  const formData = maybeFormData || prevStateOrFormData;
+  const passwordBaru = formData.get("password_baru")?.toString() || "";
+  const konfirmasiPassword = formData.get("konfirmasi_password")?.toString() || "";
 
+  // Wajib periksa login admin di server sebelum mengubah data
+  const { supabase } = await pastikanAdminLogin();
+
+  if (passwordBaru.length < 8) {
+    redirect(
+      "/admin/password?error=" +
+        encodeURIComponent("Password baru minimal 8 karakter.")
+    );
+  }
+
+  if (passwordBaru !== konfirmasiPassword) {
+    redirect(
+      "/admin/password?error=" +
+        encodeURIComponent("Konfirmasi password tidak sama.")
+    );
+  }
+
+  let pesanError = null;
+
+  try {
+    const { error } = await supabase.auth.updateUser({
+      password: passwordBaru,
+    });
+
+    if (error) {
+      pesanError = `Gagal mengganti password: ${error.message}`;
+    }
+  } catch (err) {
+    if (err?.digest?.startsWith("NEXT_REDIRECT")) {
+      throw err;
+    }
+    pesanError = err.message || "Terjadi kesalahan saat mengganti password.";
+  }
+
+  if (pesanError) {
+    redirect("/admin/password?error=" + encodeURIComponent(pesanError));
+  }
+
+  redirect(
+    "/admin/password?berhasil=" + encodeURIComponent("Password berhasil diganti.")
+  );
+}
+
+export { login as masuk, keluar as logout };

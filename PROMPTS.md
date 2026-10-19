@@ -180,21 +180,131 @@ Baca AGENTS.md bagian aturan keamanan dan docs/user-stories.md bagian US-04.
 
 Buat login admin memakai Supabase Auth (email dan password) dengan @supabase/ssr dan cookie, memakai SUPABASE_URL dan SUPABASE_PUBLISHABLE_KEY. Login diproses dengan Server Action di app/admin/actions.js dan disambungkan ke form di app/admin/login/page.jsx. Login berhasil diarahkan ke /admin; login gagal menampilkan pesan error yang jelas di halaman login. Buat juga tombol "Keluar" di components/NavAdmin.jsx berfungsi: mengakhiri sesi lalu kembali ke /admin/login. Jangan ubah tampilan. Hapus CatatanBelumAktif dari halaman login.
 **Hasil:**
+Viewed page.jsx:1-29
+Viewed NavAdmin.jsx:1-19
+Viewed Input.jsx:1-16
+Viewed Tombol.jsx:1-26
+Viewed actions.js
+Ran command: Check @supabase/ssr module exports (`node -e "const ssr = require('@supabase/ssr'); console.log('SSR exports:', Object.keys(ssr));"`)
+Ran command: Check @supabase/ssr type definitions (`node -e "const fs = require('fs'); const path = require('path'); const dts = fs.readFileSync(path.resolve('node_modules/@supabase/ssr/dist/index.d.ts'), 'utf8'); console.log(dts.slice(0, 1500));"`)
+Ran command: List files in @supabase/ssr (`Get-ChildItem -Path "node_modules/@supabase/ssr" -Recurse -File`)
+Viewed createServerClient.ts:1-60
+Viewed createServerClient.ts:60-110
+Viewed page.jsx:1-43
+Viewed PROMPTS.md:1-205
+Ran command: Check cookies export from next/headers (`node -e "const { cookies } = require('next/headers'); console.log(typeof cookies);"`)
+Created server.js
+Created actions.js
+Created page.jsx
+Created NavAdmin.jsx
+Ran command: Test project build (`npm run build`)
+Ran command: Test invalid login credentials with Supabase Auth (`node --env-file=.env.local -e "const { createClient } = require('@supabase/supabase-js'); const supabase = createClient(process.env.SUPABASE_URL.replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, ''), process.env.SUPABASE_PUBLISHABLE_KEY); supabase.auth.signInWithPassword({ email: 'wrong@example.com', password: 'wrongpassword' }).then(({ data, error }) => console.log('Auth test result:', { error: error?.message, status: error?.status }));"`)
+Ran command: Start Next.js server on port 3001 (`npx next start -p 3001`)
+Ran command: Verify login page and error display (`$html1 = (Invoke-WebRequest -Uri "http://localhost:3001/admin/login" -UseBasicParsing).Content; Write-Host "Has CatatanBelumAktif:" ($html1.Contains("CatatanBelumAktif") -or $html1.Contains("Login belum berfungsi")); $html2 = (Invoke-WebRequest -Uri "http://localhost:3001/admin/login?error=Email+atau+password+salah" -UseBasicParsing).Content; Write-Host "Has Error Msg:" ($html2.Contains("Email atau password salah"));`)
+Ran command: Verify NavAdmin on /admin (`$htmlAdmin = (Invoke-WebRequest -Uri "http://localhost:3001/admin" -UseBasicParsing).Content; Write-Host "Has Keluar button:" $htmlAdmin.Contains("Keluar");`)
+Killed task Start Next.js server on port 3001
 
+Pekerjaan untuk **US-04: Login admin** telah selesai.
+
+### Ringkasan Perubahan
+
+1. [`lib/supabase/server.js`](file:///c:/Users/Pongo/Documents/katalog-ekotias/lib/supabase/server.js):
+   - Menambahkan helper `createSessionClient()` menggunakan `@supabase/ssr` (`createServerClient`) dengan `cookies()` dari `next/headers`, `SUPABASE_URL`, dan `SUPABASE_PUBLISHABLE_KEY`.
+   - Mengimplementasikan penanganan cookie session (`getAll` & `setAll`) untuk menyimpan dan mengelola sesi autentikasi admin di server.
+
+2. [`app/admin/actions.js`](file:///c:/Users/Pongo/Documents/katalog-ekotias/app/admin/actions.js):
+   - Membuat Server Action `login(formData)`: memvalidasi email & password, memproses autentikasi via `supabase.auth.signInWithPassword`, mengarahkan ke `/admin` jika berhasil, atau mengalihkan ke `/admin/login?error=...` dengan pesan kesalahan yang jelas jika gagal.
+   - Membuat Server Action `keluar()`: memanggil `supabase.auth.signOut()` untuk menghapus sesi dan cookie login, lalu mengarahkan kembali ke `/admin/login`.
+
+3. [`app/admin/login/page.jsx`](file:///c:/Users/Pongo/Documents/katalog-ekotias/app/admin/login/page.jsx):
+   - Menghubungkan form login ke Server Action `login`.
+   - Membaca parameter query `error` dari URL untuk menampilkan pesan kesalahan ketika login gagal.
+   - Menghapus komponen `CatatanBelumAktif` tanpa mengubah tampilan form bawaan.
+
+4. [`components/NavAdmin.jsx`](file:///c:/Users/Pongo/Documents/katalog-ekotias/components/NavAdmin.jsx):
+   - Menghubungkan tombol "Keluar" ke Server Action `keluar` via form submit untuk mengakhiri sesi autentikasi admin tanpa mengubah posisi maupun tampilan tombol.
+
+---
+
+### Cara Mengetes
+
+1. Pastikan server lokal berjalan:
+   ```powershell
+   npm run dev
+   ```
+2. Buka halaman login di [http://localhost:3000/admin/login](http://localhost:3000/admin/login).
+3. **Uji Login Gagal**:
+   - Masukkan email atau password yang salah, lalu klik tombol **Masuk**.
+   - Halaman akan memuat ulang dan menampilkan pesan error merah yang jelas (misalnya: *"Email atau password salah. Silakan periksa kembali."*).
+4. **Uji Login Berhasil**:
+   - Masukkan email dan password admin yang terdaftar di Supabase Auth milikmu.
+   - Klik **Masuk**, kamu akan diarahkan ke halaman admin di [http://localhost:3000/admin](http://localhost:3000/admin).
+5. **Uji Tombol Keluar**:
+   - Di halaman admin, klik tombol **Keluar** di bagian kanan atas navigasi admin.
+   - Sesi akan diakhiri dan browser akan diarahkan kembali ke [http://localhost:3000/admin/login](http://localhost:3000/admin/login).
 **Perbaikan:**
 
 ## US-05 Ganti password
 
 **Prompt:**
+Baca docs/user-stories.md bagian US-05.
 
+Buat Server Action ganti password di app/admin/actions.js untuk admin yang sedang login, memakai Supabase Auth. Validasi di server: password baru minimal 8 karakter dan harus sama dengan konfirmasi. Tampilkan pesan berhasil atau pesan error yang jelas di halaman. Sambungkan ke form di app/admin/password/page.jsx tanpa mengubah tampilannya. Hapus CatatanBelumAktif dari halaman ini. 
 **Hasil:**
+Viewed page.jsx:1-43
+Viewed actions.js:1-62
+Created actions.js
+Created page.jsx
+Ran command: Run npm run build (`npm run build`)
+Ran command: Start Next.js test server on port 3001 (`npx next start -p 3001`)
+Ran command: Check password page responses (`$p1 = (Invoke-WebRequest -Uri "http://localhost:3001/admin/password" -UseBasicParsing).Content; Write-Host "No CatatanBelumAktif:" (-not ($p1.Contains("CatatanBelumAktif") -or $p1.Contains("Ganti password belum berfungsi"))); $p2 = (Invoke-WebRequest -Uri "http://localhost:3001/admin/password?error=Password+baru+minimal+8+karakter." -UseBasicParsing).Content; Write-Host "Has Error Msg:" $p2.Contains("Password baru minimal 8 karakter."); $p3 = (Invoke-WebRequest -Uri "http://localhost:3001/admin/password?berhasil=Password+berhasil+diganti." -UseBasicParsing).Content; Write-Host "Has Success Msg:" $p3.Contains("Password berhasil diganti.");`)
+Killed task Start Next.js test server on port 3001
 
+Pekerjaan untuk **US-05: Ganti password** telah selesai.
+
+### Ringkasan Perubahan
+
+1. [`app/admin/actions.js`](file:///c:/Users/Pongo/Documents/katalog-ekotias/app/admin/actions.js):
+   - Membuat Server Action `gantiPassword`:
+     - Memeriksa sesi admin yang sedang login melalui `supabase.auth.getUser()` di sisi server (jika sesi habis, diarahkan kembali ke `/admin/login`).
+     - Memvalidasi password baru minimal 8 karakter.
+     - Memvalidasi kesamaan antara password baru dan konfirmasi password.
+     - Memperbarui password menggunakan `supabase.auth.updateUser({ password: passwordBaru })`.
+     - Mengalihkan kembali ke `/admin/password` dengan parameter query `berhasil` jika sukses, atau `error` jika terdapat kesalahan.
+
+2. [`app/admin/password/page.jsx`](file:///c:/Users/Pongo/Documents/katalog-ekotias/app/admin/password/page.jsx):
+   - Menghubungkan form ke Server Action `gantiPassword`.
+   - Menampilkan pesan berhasil (`text-utama`) atau pesan error (`text-bahaya`) yang jelas di atas kolom isian form sesuai parameter query.
+   - Menghapus komponen `CatatanBelumAktif` tanpa mengubah tata letak maupun tampilan elemen form yang sudah ada.
+
+---
+
+### Cara Mengetes
+
+1. Pastikan server lokal berjalan:
+   ```powershell
+   npm run dev
+   ```
+2. Pastikan kamu sudah login sebagai admin (buka [http://localhost:3000/admin/login](http://localhost:3000/admin/login) jika belum).
+3. Buka halaman ganti password di [http://localhost:3000/admin/password](http://localhost:3000/admin/password).
+4. **Uji Validasi Password Kurang dari 8 Karakter**:
+   - Masukkan password baru kurang dari 8 karakter (misal: `12345`).
+   - Klik **Simpan password**, halaman akan memunculkan pesan error *"Password baru minimal 8 karakter."*.
+5. **Uji Validasi Konfirmasi Tidak Cocok**:
+   - Masukkan password baru minimal 8 karakter, tetapi buat konfirmasi password berbeda.
+   - Klik **Simpan password**, halaman akan memunculkan pesan error *"Konfirmasi password tidak sama."*.
+6. **Uji Berhasil**:
+   - Masukkan password baru yang valid (minimal 8 karakter) dan samakan konfirmasinya.
+   - Klik **Simpan password**, halaman akan menampilkan pesan sukses *"Password berhasil diganti."*.
+   - Kamu bisa menguji login ulang dengan password baru tersebut.
 **Perbaikan:**
 
 ## US-06 Proteksi halaman admin
 
 **Prompt:**
+Baca AGENTS.md aturan keamanan nomor 3 dan 4, dan docs/user-stories.md bagian US-06.
 
+Buat file proxy.js di root proyek (Next.js 16). Semua rute /admin kecuali /admin/login wajib login dengan Supabase Auth; kalau belum login, alihkan ke /admin/login. Pastikan juga setiap Server Action yang mengubah data memeriksa login di server. Hapus CatatanBelumAktif dari halaman /admin.
 **Hasil:**
 
 **Perbaikan:**
